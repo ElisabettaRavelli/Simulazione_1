@@ -4,9 +4,12 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Year;
 import java.util.ArrayList;
 import java.util.List;
 
+import it.polito.tdp.model.Anno;
+import it.polito.tdp.model.Distanze;
 import it.polito.tdp.model.Event;
 
 
@@ -53,6 +56,85 @@ public class EventsDao {
 			e.printStackTrace();
 			return null ;
 		}
+	}
+	
+	public List<Anno> getAnni(){
+		String sql="SELECT distinct YEAR(reported_date) AS anno " + 
+				"FROM events ";
+		try {
+			Connection conn = DBConnect.getConnection() ;
+
+			PreparedStatement st = conn.prepareStatement(sql) ;
+			
+			List<Anno> anni = new ArrayList<>() ;
+			
+			ResultSet res = st.executeQuery() ;
+			
+			while(res.next()) {
+				anni.add(new Anno(Year.of(res.getInt("anno"))));
+			}
+			conn.close();
+			return anni;
+			
+		}catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null ;
+		}
+	}
+	
+	public List<Integer> getDistretti(){
+		String sql = "SELECT distinct district_id " + 
+				"FROM EVENTS ";
+		try {
+		Connection conn = DBConnect.getConnection() ;
+
+		PreparedStatement st = conn.prepareStatement(sql) ;
+		
+		List<Integer> distretti = new ArrayList<>() ;
+		
+		ResultSet res = st.executeQuery() ;
+		
+		while(res.next()) {
+			distretti.add(res.getInt("district_id"));
+		}
+		conn.close();
+		return distretti;
+		
+		
+		}catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null ;
+		}
+	}
+	
+	public Distanze getDistanze(Year anno, Integer distretto){
+		String sql = "SELECT AVG(geo_lat) AS lat, AVG(geo_lon) AS lon " + 
+				"FROM EVENTS " + 
+				"WHERE YEAR(reported_date) = ? " + 
+				"AND district_id = ? ";
+		try {
+			Connection conn = DBConnect.getConnection() ;
+
+			PreparedStatement st = conn.prepareStatement(sql) ;
+			st.setInt(1, anno.getValue());
+			st.setInt(2, distretto);
+		
+			ResultSet res = st.executeQuery() ;
+			Distanze centro = null;
+			if(res.next()) {
+				centro = new Distanze(res.getDouble("lat"), res.getDouble("lon"));
+			}
+			conn.close();
+			return centro;
+			
+			
+			}catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				return null ;
+			}
 	}
 
 }
