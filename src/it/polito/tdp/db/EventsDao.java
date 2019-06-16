@@ -4,23 +4,24 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.Year;
 import java.util.ArrayList;
 import java.util.List;
 
-import it.polito.tdp.model.Anno;
-import it.polito.tdp.model.Distanze;
 import it.polito.tdp.model.Event;
 
 
 public class EventsDao {
 	
-	public List<Event> listAllEvents(){
-		String sql = "SELECT * FROM events" ;
+	public List<Event> listAllEventsbyYear(Integer anno, Integer mese, Integer giorno){
+		String sql = "SELECT * FROM events where Year(reported_date) = ? " +
+				     "AND Month(reported_date) = ? AND Day(reported_date) = ? " ;
 		try {
 			Connection conn = DBConnect.getConnection() ;
 
 			PreparedStatement st = conn.prepareStatement(sql) ;
+			st.setInt(1, anno);
+			st.setInt(2, mese);
+			st.setInt(3, giorno);
 			
 			List<Event> list = new ArrayList<>() ;
 			
@@ -58,7 +59,7 @@ public class EventsDao {
 		}
 	}
 	
-	public List<Anno> getAnni(){
+	public List<Integer> getAnni(){
 		String sql="SELECT distinct YEAR(reported_date) AS anno " + 
 				"FROM events ";
 		try {
@@ -66,12 +67,12 @@ public class EventsDao {
 
 			PreparedStatement st = conn.prepareStatement(sql) ;
 			
-			List<Anno> anni = new ArrayList<>() ;
+			List<Integer> anni = new ArrayList<>() ;
 			
 			ResultSet res = st.executeQuery() ;
 			
 			while(res.next()) {
-				anni.add(new Anno(Year.of(res.getInt("anno"))));
+				anni.add(res.getInt("anno"));
 			}
 			conn.close();
 			return anni;
@@ -83,14 +84,12 @@ public class EventsDao {
 		}
 	}
 	
-	public List<Integer> getDistretti(){
-		String sql = "SELECT distinct district_id " + 
-				"FROM EVENTS ";
+	public List<Integer> getDistretti(Integer anno){
+		String sql = "SELECT distinct district_id FROM EVENTS where year(reported_date) = ? ";
 		try {
 		Connection conn = DBConnect.getConnection() ;
-
 		PreparedStatement st = conn.prepareStatement(sql) ;
-		
+		st.setInt(1, anno);
 		List<Integer> distretti = new ArrayList<>() ;
 		
 		ResultSet res = st.executeQuery() ;
@@ -98,7 +97,7 @@ public class EventsDao {
 		while(res.next()) {
 			distretti.add(res.getInt("district_id"));
 		}
-		conn.close();
+		conn.close(); //devo chiudere la connessione prima di ritornare il risultato
 		return distretti;
 		
 		
@@ -109,8 +108,9 @@ public class EventsDao {
 		}
 	}
 	
-	public Distanze getDistanze(Year anno, Integer distretto){
-		String sql = "SELECT AVG(geo_lat) AS lat, AVG(geo_lon) AS lon " + 
+	
+	public Double getLatMedia(Integer anno, Integer distretto) {
+		String sql = "SELECT AVG(geo_lat) AS media " + 
 				"FROM EVENTS " + 
 				"WHERE YEAR(reported_date) = ? " + 
 				"AND district_id = ? ";
@@ -118,16 +118,17 @@ public class EventsDao {
 			Connection conn = DBConnect.getConnection() ;
 
 			PreparedStatement st = conn.prepareStatement(sql) ;
-			st.setInt(1, anno.getValue());
+			st.setInt(1, anno);
 			st.setInt(2, distretto);
 		
 			ResultSet res = st.executeQuery() ;
-			Distanze centro = null;
+			
 			if(res.next()) {
-				centro = new Distanze(res.getDouble("lat"), res.getDouble("lon"));
+				conn.close(); //prima di un ritorno si deve sempre chiudere la connessione
+				return res.getDouble("media");
 			}
 			conn.close();
-			return centro;
+			return null;
 			
 			
 			}catch (SQLException e) {
@@ -135,6 +136,61 @@ public class EventsDao {
 				e.printStackTrace();
 				return null ;
 			}
+	}
+
+	public Double getLonMedia(Integer anno, Integer distretto) {
+		String sql = "SELECT AVG(geo_lon) AS media " + 
+				"FROM EVENTS " + 
+				"WHERE YEAR(reported_date) = ? " + 
+				"AND district_id = ? ";
+		try {
+			Connection conn = DBConnect.getConnection() ;
+
+			PreparedStatement st = conn.prepareStatement(sql) ;
+			st.setInt(1, anno);
+			st.setInt(2, distretto);
+		
+			ResultSet res = st.executeQuery() ;
+			
+			if(res.next()) {
+				conn.close(); //prima di un ritorno si deve sempre chiudere la connessione
+				return res.getDouble("media");
+			}
+			conn.close();
+			return null;
+			
+			
+			}catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				return null ;
+			}
+		}
+
+	public Integer getDistrettoMin(Integer anno) {
+		String sql = "select district_id " + 
+				"from events " + 
+				"where Year(reported_date)= ? " + 
+				"group by district_id " + 
+				"order by count(*) asc " + 
+				"limit 1 ";
+		try {
+			Connection conn = DBConnect.getConnection() ;
+			PreparedStatement st = conn.prepareStatement(sql) ;
+			st.setInt(1, anno);
+			ResultSet res = st.executeQuery() ;
+			
+			if(res.next()) {
+				conn.close();
+				return res.getInt("district_id");
+			}
+			conn.close(); //devo chiudere la connessione prima di ritornare il risultato
+			return null;
+		}catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null ;
+		}
 	}
 
 }
