@@ -68,6 +68,10 @@ public class CrimesController {
     	
     	for(Integer d: this.model.getDistretti()) {
     		List<PesoVertice> vicini = this.model.getVicini(d);
+    		if(vicini.isEmpty()) {
+    			txtResult.clear();
+    			txtResult.appendText("Non ci sono vicini\n");
+    		}
     		txtResult.appendText("\nVICINI DI DISTRETTO "+ d);
     		for(PesoVertice v: vicini)
     			txtResult.appendText("\n "+ v.getV()+ " d = "+v.getDistanza());
